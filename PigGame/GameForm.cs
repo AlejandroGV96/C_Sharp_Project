@@ -20,12 +20,17 @@ namespace PigGame
 
         private void bHold_Click(object sender, EventArgs e)
         {
-            GameState.ButtonHold();
+            GameState.ActivePlayer.Hold();
         }
 
         private void bRollDice_Click(object sender, EventArgs e)
         {
-            GameState.ButtonRoll();
+            GameState.ActivePlayer.RollDice();
+        }
+
+        private void bNewGame_Click(object sender, EventArgs e)
+        {
+            GameState.NewGame(this);
         }
     }
 
@@ -33,11 +38,12 @@ namespace PigGame
     {
         private static uint _prevDice1 = 0;
         private static uint _prevDice2 = 0;
+        private static uint _dice1 = 0;
+        private static uint _dice2 = 0;
 
         private uint _ID;
         private uint _Score;
-        private uint _RoundScore;
-        public bool _IsActive;
+        static private uint _RoundScore;
 
         public uint ID => _ID;
         public uint Score => _Score;
@@ -48,7 +54,6 @@ namespace PigGame
             _ID = id;
             _Score = 0;
             _RoundScore = 0;
-            _IsActive = false;
         }
 
         private void EndTurn()
@@ -57,35 +62,36 @@ namespace PigGame
             _RoundScore = 0;
             _prevDice1 = 0;
             _prevDice2 = 0;
-            _IsActive = false;
-            GameState._gameForm.lRoundScorePlayerOne.Text  
-                = "0";
-            // GameState.ChangeTurn()
+
+            // Update Round Score to zero
+            GameState.UpdateRoundScore();
+
+            // Change Player turn
             GameState.ChangeTurn();
             
         }
 
         public void RollDice()
         {
+
             // Roll two dice
             Random r = new Random();
-            uint dice1 = (uint)r.Next(1,7);
-            uint dice2 = (uint)r.Next(1, 7);
+            _dice1 = (uint)r.Next(1,7);
+            _dice2 = (uint)r.Next(1, 7);
 
             // Check conditions
                 //Update the round score iff the rolled numbers were not both x1
-                bool conditionOne = !(dice1 != 1 && dice2 != 1);
+                bool conditionOne = !(_dice1 == 1 && _dice2 == 1);
                 //Update the round score iff there were not two sixes rolled in a row
-                bool conditionTwo = !(_prevDice1 + dice1 == 12 || _prevDice1 + dice2 == 12 || _prevDice2 + dice1 == 12 || _prevDice2 + dice2 == 12);
+                bool conditionTwo = !(_prevDice1 + _dice1 == 12 || _prevDice1 + _dice2 == 12 || _prevDice2 + _dice1 == 12 || _prevDice2 + _dice2 == 12);
 
             // Add to _RoundScore if conditions met
-            if(true)//conditionOne && conditionTwo)
+            if(conditionOne && conditionTwo)
             {
-                _RoundScore += (dice1 + dice2);
-                GameState._gameForm.lRoundScorePlayerOne.Text = GameState.ActivePlayer.RoundScore.ToString();
-
-                _prevDice1 = dice1;
-                _prevDice2 = dice2;
+                _RoundScore += (_dice1 + _dice2);
+                GameState.UpdateRoundScore();
+                _prevDice1 = _dice1;
+                _prevDice2 = _dice2;
 
             }
             // Call EndTurn() if conditions are not met
@@ -98,8 +104,11 @@ namespace PigGame
         public void Hold()
         {
             // Add _RoundScore to _Score
-            GameState._gameForm.lScorePlayerOne.Text = (GameState.ActivePlayer.Score + GameState.ActivePlayer.RoundScore).ToString();
+            //GameState._gameForm.lScorePlayerOne.Text = (GameState.ActivePlayer.Score + GameState.ActivePlayer.RoundScore).ToString();
             _Score +=_RoundScore;
+            GameState.UpdateScore();
+            //_RoundScore = 0;
+            //GameState.UpdateRoundScore();
             // Evaluate if win to set GameState.ThereIsWinner to true and call GameState.EndGame() or
             if (_Score >= GameState.WinningScore)
             {
@@ -127,16 +136,37 @@ namespace PigGame
                 new Player(1)
             };
             _gameForm = gameForm;
+            _gameForm.bHold.Enabled = true;
+            _gameForm.bRollDice.Enabled = true;
             WinningScore = 100;
             ThereIsWinner = false;
             ActivePlayer = Players[0];
-            Players[0]._IsActive = true;
-            ChangeTurn();
+        }
+
+        public static void UpdateScore()
+        {
+            // Update Round Score on Player Roll and player Endturn
+            Label TurnPlayerScore;
+            // Decide to whom update the score
+            if (ActivePlayer == Players[0]) TurnPlayerScore = _gameForm.lScorePlayerOne;
+            else TurnPlayerScore = _gameForm.lScorePlayerTwo;
+            // Update Score on Hold
+            TurnPlayerScore.Text = ActivePlayer.Score.ToString();
+        }
+
+        public static void UpdateRoundScore()
+        {
+            Label TurnPlayerRoundScore;
+            // Decide to whom update the round score
+            if (ActivePlayer == Players[0]) TurnPlayerRoundScore = _gameForm.lRoundScorePlayerOne;
+            else TurnPlayerRoundScore = _gameForm.lRoundScorePlayerTwo;
+            // Update Round Score on Roll
+            TurnPlayerRoundScore.Text = ActivePlayer.RoundScore.ToString();
+
         }
 
         private static void UpdateUI()
         {
-
 
             // Evaluate if there is a winner to for updating UI accordingly, otherwise...
             if (ThereIsWinner)
@@ -147,18 +177,7 @@ namespace PigGame
             {
              // Highlight ActivePlayer Panel and grey up non active
                 //for each player, check if active and execute if else to higlight or greyup PlayerUI panel
-                foreach (var player in Players)
-                {
-                    if (player._IsActive)
-                    {
-                        // Activate UI
 
-                    }
-                    else
-                    {
-                        // Deactivate UI
-                    }
-                }
             }
         }
 
@@ -169,56 +188,27 @@ namespace PigGame
             // Change ActivePlayer
             if (ActivePlayer == Players[0]) ActivePlayer = Players[1];
             else ActivePlayer = Players[0];
-            ActivePlayer._IsActive = true;
 
-            // Disable not Active Player buttons and Activate ActivePlayer Buttons
-            //for each player, check if active and execute if else to disable or enable buttons
-            foreach (var player in Players)
-            {
-                if (player._IsActive)
-                {
-                    // Activate controls
-                }
-                else
-                {
-                    // Deactivate controls
-                }
-            }
-
-            // Call UpdateUI()
         }
 
         public static void EndGame()
         {
             // Disable both players' buttons
-            foreach (var player in Players)
-            {
-                // Disable controls
-            }
+            _gameForm.bHold.Enabled = false;
+            _gameForm.bRollDice.Enabled = false;
 
             // Call UpdateUI()
             UpdateUI();
         }
 
-        public static void NewGame()
+        public static void NewGame(GameForm gameForm)
         {
             // Initialize all scores to zero
-            // ActivePlayer to 1, ThereIsWinner to false
-
-        }
-
-        public static void ButtonRoll()
-        {
-            // Evaluate which player is active
-            // Call ActivePlayer.RollDice()
-            ActivePlayer.RollDice();
-        }
-
-        public static void ButtonHold()
-        {
-            // Evaluate which player is active
-            // Call ActivePlayer.Hold()
-            ActivePlayer.Hold();
+            _gameForm.lRoundScorePlayerOne.Text = "0";
+            _gameForm.lRoundScorePlayerTwo.Text = "0";
+            _gameForm.lScorePlayerOne     .Text = "0";
+            _gameForm.lScorePlayerTwo     .Text = "0";
+            Init(gameForm);
         }
     }
 
