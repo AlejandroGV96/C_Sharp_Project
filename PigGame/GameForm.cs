@@ -38,20 +38,21 @@ namespace PigGame
     {
         private static uint _prevDice1 = 0;
         private static uint _prevDice2 = 0;
+        
         private static uint _dice1 = 0;
         private static uint _dice2 = 0;
 
-        private uint _ID;
+        public uint DieOne => _dice1;
+        public uint DieTwo => _dice2;
+
         private uint _Score;
         static private uint _RoundScore;
 
-        public uint ID => _ID;
         public uint Score => _Score;
         public uint RoundScore => _RoundScore;
 
-        public Player(uint id)
+        public Player()
         {
-            _ID = id;
             _Score = 0;
             _RoundScore = 0;
         }
@@ -78,7 +79,7 @@ namespace PigGame
             Random r = new Random();
             _dice1 = (uint)r.Next(1,7);
             _dice2 = (uint)r.Next(1, 7);
-
+            GameState.UpdateDie();
             // Check conditions
                 //Update the round score iff the rolled numbers were not both x1
                 bool conditionOne = !(_dice1 == 1 && _dice2 == 1);
@@ -97,6 +98,10 @@ namespace PigGame
             // Call EndTurn() if conditions are not met
             else
             {
+                string Message;
+                if (!conditionOne) Message = "Oops, you rolled two ones!\r\n";
+                else Message = "Too risky! You rolled two times six in a row.\r\n";
+                GameState.UpdateEventBox(Message);
                 EndTurn();
             }
 
@@ -104,11 +109,18 @@ namespace PigGame
         public void Hold()
         {
             // Add _RoundScore to _Score
-            //GameState._gameForm.lScorePlayerOne.Text = (GameState.ActivePlayer.Score + GameState.ActivePlayer.RoundScore).ToString();
             _Score +=_RoundScore;
+            string Message;
+            if (RoundScore == 0)
+            {
+                Message = "You... passed?\r\n";
+            }else
+            {
+                Message = $"You added {RoundScore} points to your score!\r\n";
+            }
+            GameState.UpdateEventBox(Message);
             GameState.UpdateScore();
-            //_RoundScore = 0;
-            //GameState.UpdateRoundScore();
+
             // Evaluate if win to set GameState.ThereIsWinner to true and call GameState.EndGame() or
             if (_Score >= GameState.WinningScore)
             {
@@ -132,8 +144,8 @@ namespace PigGame
         {
             Players = new Player[]
             {
-                new Player(0),
-                new Player(1)
+                new Player(),
+                new Player()
             };
             _gameForm = gameForm;
             _gameForm.bHold.Enabled = true;
@@ -141,6 +153,8 @@ namespace PigGame
             WinningScore = 100;
             ThereIsWinner = false;
             ActivePlayer = Players[0];
+            _gameForm.pPlayerOne.BackColor = System.Drawing.Color.White;
+            _gameForm.pPlayerTwo.BackColor = System.Drawing.Color.FromArgb(150, 255, 255, 255);
         }
 
         public static void UpdateScore()
@@ -164,6 +178,60 @@ namespace PigGame
             TurnPlayerRoundScore.Text = ActivePlayer.RoundScore.ToString();
 
         }
+        public static void UpdateEventBox(string Message)
+        {
+            TextBox TurnPlayerEventBox;
+            if (ActivePlayer == Players[0]) TurnPlayerEventBox = _gameForm.tbPlayerOne;
+            else TurnPlayerEventBox = _gameForm.tbPlayerTwo;
+
+            TurnPlayerEventBox.AppendText(Message);
+        }
+
+        public static void UpdateDie()
+        {
+            switch (ActivePlayer.DieOne)
+            {
+                case 1:
+                    _gameForm.DieOne.Image = Properties.Resources.dice_1;
+                    break;
+                case 2:
+                    _gameForm.DieOne.Image = Properties.Resources.dice_2;
+                    break;
+                case 3:
+                    _gameForm.DieOne.Image = Properties.Resources.dice_3;
+                    break;
+                case 4:
+                    _gameForm.DieOne.Image = Properties.Resources.dice_4;
+                    break;
+                case 5:
+                    _gameForm.DieOne.Image = Properties.Resources.dice_5;
+                    break;
+                case 6:
+                    _gameForm.DieOne.Image = Properties.Resources.dice_6;
+                    break;
+            }
+            switch (ActivePlayer.DieTwo)
+            {
+                case 1:
+                    _gameForm.DieTwo.Image = Properties.Resources.dice_1;
+                    break;
+                case 2:
+                    _gameForm.DieTwo.Image = Properties.Resources.dice_2;
+                    break;
+                case 3:
+                    _gameForm.DieTwo.Image = Properties.Resources.dice_3;
+                    break;
+                case 4:
+                    _gameForm.DieTwo.Image = Properties.Resources.dice_4;
+                    break;
+                case 5:
+                    _gameForm.DieTwo.Image = Properties.Resources.dice_5;
+                    break;
+                case 6:
+                    _gameForm.DieTwo.Image = Properties.Resources.dice_6;
+                    break;
+            }
+        }
 
         private static void UpdateUI()
         {
@@ -171,13 +239,34 @@ namespace PigGame
             // Evaluate if there is a winner to for updating UI accordingly, otherwise...
             if (ThereIsWinner)
             {
-                // Set winner UI for ActivePlayer
+                if (ActivePlayer == Players[0])
+                {
+                    _gameForm.lPlayerOne.Text = "WINNER!";
+                    _gameForm.lPlayerOne.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+                    _gameForm.lPlayerOne.ForeColor = System.Drawing.Color.Firebrick;
+
+                }
+                else
+                {
+                    _gameForm.lPlayerTwo.Text = "WINNER!";
+                    _gameForm.lPlayerTwo.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+                    _gameForm.lPlayerTwo.ForeColor = System.Drawing.Color.Firebrick;
+                }
             }
             else
             {
-             // Highlight ActivePlayer Panel and grey up non active
+                // Highlight ActivePlayer Panel and grey up non active
                 //for each player, check if active and execute if else to higlight or greyup PlayerUI panel
-
+                if (ActivePlayer == Players[1])
+                {
+                    _gameForm.pPlayerOne.BackColor = System.Drawing.Color.White;
+                    _gameForm.pPlayerTwo.BackColor = System.Drawing.Color.FromArgb(150, 255, 255, 255);
+                }
+                else
+                {
+                    _gameForm.pPlayerTwo.BackColor = System.Drawing.Color.White;
+                    _gameForm.pPlayerOne.BackColor = System.Drawing.Color.FromArgb(150, 255, 255, 255);
+                }
             }
         }
 
@@ -208,6 +297,18 @@ namespace PigGame
             _gameForm.lRoundScorePlayerTwo.Text = "0";
             _gameForm.lScorePlayerOne     .Text = "0";
             _gameForm.lScorePlayerTwo     .Text = "0";
+            _gameForm.DieOne.Image = null;
+            _gameForm.DieTwo.Image = null;
+            _gameForm.tbPlayerOne.Text = "";
+            _gameForm.tbPlayerTwo.Text = "";
+
+            _gameForm.lPlayerOne.Text = "Player One";
+            _gameForm.lPlayerOne.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            _gameForm.lPlayerOne.ForeColor = System.Drawing.Color.Black;
+
+            _gameForm.lPlayerTwo.Text = "Player Two";
+            _gameForm.lPlayerTwo.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            _gameForm.lPlayerTwo.ForeColor = System.Drawing.Color.Black;
             Init(gameForm);
         }
     }
